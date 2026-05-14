@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llm-ksa
+  namespace: llm-serving
+  annotations:
+    iam.gke.io/gcp-service-account: gke-llm-sa@my-llm-platform.iam.gserviceaccount.com

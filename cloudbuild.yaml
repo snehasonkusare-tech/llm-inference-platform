@@ -1,0 +1,69 @@
+steps:
+  # Build vLLM server image (GPU)
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/vllm-server:$BUILD_ID'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/vllm-server:latest'
+      - '-f'
+      - 'docker/vllm-server/Dockerfile'
+      - '.'
+    timeout: '3600s'
+
+  # Push vLLM server image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/vllm-server:$BUILD_ID']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/vllm-server:latest']
+
+  # Build CPU inference server image (transformers-based, no CUDA)
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/cpu-server:$BUILD_ID'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/cpu-server:latest'
+      - '-f'
+      - 'docker/cpu-server/Dockerfile'
+      - '.'
+    timeout: '1200s'
+
+  # Push CPU server image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/cpu-server:$BUILD_ID']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/cpu-server:latest']
+
+  # Build inference router image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/inference-router:$BUILD_ID'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/inference-router:latest'
+      - '-f'
+      - 'docker/inference-router/Dockerfile'
+      - '.'
+    timeout: '600s'
+
+  # Push inference router image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/inference-router:$BUILD_ID']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/inference-router:latest']
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/vllm-server:latest'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/cpu-server:latest'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/llm-platform/inference-router:latest'
+
+options:
+  machineType: 'E2_HIGHCPU_32'
+  diskSizeGb: 200
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '7200s'

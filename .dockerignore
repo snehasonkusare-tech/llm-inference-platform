@@ -1,0 +1,13 @@
+.git
+.github
+*.md
+terraform/
+.terraform/
+*.tfstate
+*.tfstate.backup
+__pycache__/
+*.pyc
+*.pyo
+.env
+.venv
+node_modules/

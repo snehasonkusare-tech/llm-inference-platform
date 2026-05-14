@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference-router
+  namespace: llm-serving
+  labels:
+    app: inference-router
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: inference-router
+  template:
+    metadata:
+      labels:
+        app: inference-router
+    spec:
+      containers:
+      - name: router
+        image: us-central1-docker.pkg.dev/my-llm-platform/llm-platform/inference-router:latest
+        imagePullPolicy: Always
+
+        env:
+        - name: LLAMA3_BACKEND
+          value: "http://gemma-2b-svc.llm-serving:8000"
+        - name: MISTRAL_BACKEND
+          value: "http://gemma-2b-svc.llm-serving:8000"
+        - name: GEMMA_BACKEND
+          value: "http://gemma-2b-svc.llm-serving:8000"
+        - name: VALID_API_KEYS
+          value: "sk-dev-key"
+        - name: RATE_LIMIT_PER_MINUTE
+          value: "100"
+
+        ports:
+        - name: http
+          containerPort: 8080
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10

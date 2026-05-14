@@ -1,0 +1,92 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: llm-platform-alerts
+  namespace: llm-monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+  - name: llm-platform.pods
+    interval: 30s
+    rules:
+
+    # Pod crash looping
+    - alert: PodCrashLooping
+      expr: |
+        rate(kube_pod_container_status_restarts_total{namespace="llm-serving"}[5m]) > 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Pod {{ $labels.pod }} is crash looping"
+        description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted more than once in 5 minutes."
+
+    # Pod not ready
+    - alert: PodNotReady
+      expr: |
+        kube_pod_status_ready{namespace="llm-serving", condition="true"} == 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ $labels.pod }} is not ready"
+        description: "Pod {{ $labels.pod }} has been not ready for more than 5 minutes."
+
+  - name: llm-platform.inference
+    interval: 30s
+    rules:
+
+    # High error rate on router
+    - alert: HighInferenceErrorRate
+      expr: |
+        sum(rate(inference_requests_total{status=~"5.."}[5m]))
+        /
+        sum(rate(inference_requests_total[5m])) > 0.05
+      for: 3m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High inference error rate"
+        description: "More than 5% of inference requests are failing (current: {{ $value | humanizePercentage }})."
+
+    # High request latency
+    - alert: HighInferenceLatency
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(inference_request_duration_seconds_bucket[5m])) by (le, model)
+        ) > 30
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High inference latency for {{ $labels.model }}"
+        description: "P95 latency for model {{ $labels.model }} is above 30s."
+
+    # No requests being served (dead service)
+    - alert: NoInferenceRequests
+      expr: |
+        sum(rate(inference_requests_total[10m])) == 0
+      for: 15m
+      labels:
+        severity: info
+      annotations:
+        summary: "No inference requests in 15 minutes"
+        description: "The inference router has not served any requests in the last 15 minutes."
+
+  - name: llm-platform.resources
+    interval: 60s
+    rules:
+
+    # High memory usage
+    - alert: HighMemoryUsage
+      expr: |
+        container_memory_usage_bytes{namespace="llm-serving"}
+        /
+        container_spec_memory_limit_bytes{namespace="llm-serving"} > 0.90
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High memory usage in {{ $labels.pod }}"
+        description: "Container {{ $labels.container }} in pod {{ $labels.pod }} is using >90% of its memory limit."

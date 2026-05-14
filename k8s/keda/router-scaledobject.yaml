@@ -1,0 +1,28 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: inference-router-scaledobject
+  namespace: llm-serving
+spec:
+  scaleTargetRef:
+    name: inference-router
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  cooldownPeriod: 180
+  pollingInterval: 15
+
+  triggers:
+  # --- Trigger 1: CPU utilization ---
+  - type: cpu
+    metricType: Utilization
+    metadata:
+      value: "70"
+
+  # --- Trigger 2: Prometheus — active request count (activate in Phase 6) ---
+  # - type: prometheus
+  #   metadata:
+  #     serverAddress: http://prometheus-server.llm-monitoring:9090
+  #     metricName: active_requests
+  #     query: |
+  #       sum(inference_active_requests{namespace="llm-serving"})
+  #     threshold: "50"

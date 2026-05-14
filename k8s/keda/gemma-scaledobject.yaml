@@ -1,0 +1,29 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: gemma-2b-scaledobject
+  namespace: llm-serving
+spec:
+  scaleTargetRef:
+    name: gemma-2b-cpu
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  cooldownPeriod: 300       # seconds to wait before scaling down
+  pollingInterval: 30       # how often KEDA checks triggers (seconds)
+
+  triggers:
+  # --- Trigger 1: CPU utilization (active immediately) ---
+  - type: cpu
+    metricType: Utilization
+    metadata:
+      value: "70"   # scale up when CPU > 70%
+
+  # --- Trigger 2: Prometheus — requests per second (activate in Phase 6) ---
+  # Uncomment once Prometheus is deployed in llm-monitoring namespace
+  # - type: prometheus
+  #   metadata:
+  #     serverAddress: http://prometheus-server.llm-monitoring:9090
+  #     metricName: inference_requests_total
+  #     query: |
+  #       sum(rate(inference_requests_total{namespace="llm-serving"}[2m]))
+  #     threshold: "10"   # scale up when > 10 req/s

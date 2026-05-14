@@ -1,0 +1,68 @@
+# --- Rate Limiting Plugin ---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rate-limiting
+  namespace: llm-serving
+  annotations:
+    kubernetes.io/ingress.class: kong
+config:
+  minute: 60          # 60 requests per minute per consumer
+  hour: 1000
+  policy: local
+  limit_by: consumer
+plugin: rate-limiting
+---
+# --- API Key Authentication Plugin ---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: key-auth
+  namespace: llm-serving
+  annotations:
+    kubernetes.io/ingress.class: kong
+config:
+  key_names:
+    - apikey
+    - x-api-key
+  hide_credentials: true   # strip key from upstream request
+plugin: key-auth
+---
+# --- CORS Plugin ---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: cors
+  namespace: llm-serving
+  annotations:
+    kubernetes.io/ingress.class: kong
+config:
+  origins:
+    - "*"
+  methods:
+    - GET
+    - POST
+    - OPTIONS
+  headers:
+    - Authorization
+    - Content-Type
+    - X-Api-Key
+  exposed_headers:
+    - X-Auth-Token
+  max_age: 3600
+plugin: cors
+---
+# --- Request Transformer — add upstream headers ---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: request-transformer
+  namespace: llm-serving
+  annotations:
+    kubernetes.io/ingress.class: kong
+config:
+  add:
+    headers:
+      - "X-Gateway: kong"
+      - "Authorization: Bearer sk-dev-key"
+plugin: request-transformer

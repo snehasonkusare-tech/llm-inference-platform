@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: llm-api-ingress
+  namespace: llm-serving
+  annotations:
+    kubernetes.io/ingress.class: kong
+    # Attach plugins to this ingress
+    konghq.com/plugins: rate-limiting,key-auth,cors,request-transformer
+    konghq.com/strip-path: "false"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /v1
+        pathType: Prefix
+        backend:
+          service:
+            name: inference-router-svc
+            port:
+              number: 8080
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: inference-router-svc
+            port:
+              number: 8080

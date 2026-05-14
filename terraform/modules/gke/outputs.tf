@@ -1,0 +1,10 @@
+output "cluster_name" {
+  value       = google_container_cluster.primary.name
+  description = "GKE cluster name"
+}
+
+output "cluster_endpoint" {
+  value       = google_container_cluster.primary.endpoint
+  description = "GKE cluster endpoint"
+  sensitive   = true
+}

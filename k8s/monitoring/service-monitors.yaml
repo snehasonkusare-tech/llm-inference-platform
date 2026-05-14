@@ -1,0 +1,39 @@
+# ServiceMonitor for the inference router
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: inference-router-monitor
+  namespace: llm-monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - llm-serving
+  selector:
+    matchLabels:
+      app: inference-router
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+---
+# ServiceMonitor for Gemma CPU pod
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: gemma-cpu-monitor
+  namespace: llm-monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - llm-serving
+  selector:
+    matchLabels:
+      app: gemma-2b-cpu
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s

@@ -1,0 +1,49 @@
+# --- Dev consumer ---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: dev-consumer
+  namespace: llm-serving
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: dev-user
+credentials:
+  - dev-api-key
+---
+# --- Prod consumer ---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: prod-consumer
+  namespace: llm-serving
+  annotations:
+    kubernetes.io/ingress.class: kong
+username: prod-user
+credentials:
+  - prod-api-key
+---
+# --- API key secret for dev ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dev-api-key
+  namespace: llm-serving
+  labels:
+    konghq.com/credential: key-auth
+type: Opaque
+stringData:
+  key: sk-dev-key
+  kongCredType: key-auth
+---
+# --- API key secret for prod ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: prod-api-key
+  namespace: llm-serving
+  labels:
+    konghq.com/credential: key-auth
+type: Opaque
+stringData:
+  key: sk-prod-key-change-me
+  kongCredType: key-auth

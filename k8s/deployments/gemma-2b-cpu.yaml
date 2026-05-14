@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma-2b-cpu
+  namespace: llm-serving
+  labels:
+    app: gemma-2b-cpu
+    model: gemma
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gemma-2b-cpu
+  template:
+    metadata:
+      labels:
+        app: gemma-2b-cpu
+    spec:
+      serviceAccountName: llm-ksa
+
+      containers:
+      - name: cpu-server
+        # Dedicated CPU inference image — transformers-based, no CUDA required
+        image: us-central1-docker.pkg.dev/my-llm-platform/llm-platform/cpu-server:latest
+        imagePullPolicy: Always
+
+        env:
+        - name: MODEL_NAME
+          value: "google/gemma-2b-it"
+        - name: GCS_BUCKET
+          value: "my-llm-platform-llm-weights"
+        - name: MAX_MODEL_LEN
+          value: "2048"
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-token
+              key: HF_TOKEN
+
+        ports:
+        - name: http
+          containerPort: 8000
+
+        resources:
+          requests:
+            memory: "12Gi"
+            cpu: "4"
+          limits:
+            memory: "16Gi"
+            cpu: "8"
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          # GCS download (~5GB) + model load into RAM — give it plenty of time
+          initialDelaySeconds: 300
+          periodSeconds: 15
+          failureThreshold: 40
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 360
+          periodSeconds: 30
+
+        volumeMounts:
+        - name: model-cache
+          mountPath: /model-weights
+
+      volumes:
+      - name: model-cache
+        emptyDir:
+          sizeLimit: 10Gi
